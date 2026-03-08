@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gerenciador de Pulso — Espuladeira · Stickfran</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Barlow+Condensed:wght@300;400;600;700;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ───────────────────────────────────────
+   TOKENS
+─────────────────────────────────────── */
+:root{
+  --black:#04080C;--bg1:#0B1018;--bg2:#121A24;--bg3:#19232F;
+  --red:#E8192C;--red-lt:#FF3347;--red-dim:rgba(232,25,44,.12);--red-glow:rgba(232,25,44,.35);
+  --teal:#00D4AA;--teal-dim:rgba(0,212,170,.08);--teal-bd:rgba(0,212,170,.22);
+  --amb:#FF8C00;--amb-dim:rgba(255,140,0,.08);--amb-bd:rgba(255,140,0,.2);
+  --blu:#00AAFF;--blu-dim:rgba(0,170,255,.08);--blu-bd:rgba(0,170,255,.2);
+  --grn:#00C864;--grn-dim:rgba(0,200,100,.07);--grn-bd:rgba(0,200,100,.18);
+  --t-hi:#EEF3F8;--t-md:#7A8FA0;--t-lo:#3A4F60;
+  --bd:rgba(255,255,255,.06);--bd2:rgba(255,255,255,.11);
+  --disp:'Bebas Neue',sans-serif;--cond:'Barlow Condensed',sans-serif;
+  --body:'Barlow',sans-serif;--mono:'DM Mono',monospace;
+  --r:6px;--r2:10px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--black);color:var(--t-hi);font-family:var(--body);line-height:1.6;overflow-x:hidden}
+
+/* ───────────────────────────────────────
+   GRAIN OVERLAY
+─────────────────────────────────────── */
+body::after{
+  content:'';position:fixed;inset:0;z-index:999;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23g)' opacity='.035'/%3E%3C/svg%3E");
+  opacity:.55;mix-blend-mode:overlay;
+}
+
+/* ───────────────────────────────────────
+   LAYOUT
+─────────────────────────────────────── */
+.wrap{max-width:1160px;margin:0 auto;padding:0 28px}
+section{position:relative}
+
+/* ───────────────────────────────────────
+   NAV
+─────────────────────────────────────── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:200;height:58px;
+  background:rgba(4,8,12,.82);backdrop-filter:blur(18px) saturate(1.4);
+  border-bottom:1px solid var(--bd);
+  display:flex;align-items:center;
+  transition:border-color .3s;
+}
+nav.scrolled{border-bottom-color:rgba(232,25,44,.25)}
+.nav-i{display:flex;align-items:center;justify-content:space-between;width:100%}
+.nav-brand{display:flex;align-items:center;gap:11px}
+.nav-logo{height:26px;width:auto;filter:drop-shadow(0 0 7px var(--red-glow))}
+.nav-name{font-family:var(--cond);font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase}
+.nav-name b{color:var(--red)}
+.nav-links{display:flex;gap:28px;list-style:none}
+.nav-links a{font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--t-md);text-decoration:none;transition:color .18s}
+.nav-links a:hover{color:var(--t-hi)}
+.nav-btn{
+  background:var(--red);color:#fff;border:none;cursor:pointer;text-decoration:none;
+  font-family:var(--cond);font-size:10px;font-weight:900;letter-spacing:2px;text-transform:uppercase;
+  padding:8px 20px;border-radius:var(--r);
+  box-shadow:0 3px 14px var(--red-glow);transition:all .2s;display:inline-flex;align-items:center;gap:6px;
+}
+.nav-btn:hover{background:var(--red-lt);transform:translateY(-1px);box-shadow:0 5px 20px var(--red-glow)}
+@media(max-width:780px){.nav-links{display:none}}
+
+/* ───────────────────────────────────────
+   HERO
+─────────────────────────────────────── */
+.hero{
+  min-height:100vh;display:grid;align-items:center;
+  padding:110px 0 80px;overflow:hidden;
+}
+/* Fundo: linhas cruzadas industriais */
+.hero-bg{
+  position:absolute;inset:0;z-index:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px);
+  background-size:72px 72px;
+  mask-image:radial-gradient(ellipse 90% 80% at 55% 45%,#000 30%,transparent 100%);
+}
+/* Glow vermelho hero */
+.hero-glow{
+  position:absolute;width:900px;height:900px;
+  background:radial-gradient(ellipse,rgba(232,25,44,.09) 0%,transparent 65%);
+  right:-200px;top:50%;transform:translateY(-50%);z-index:0;pointer-events:none;
+}
+/* Linha vermelha lateral */
+.hero-stripe{
+  position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:linear-gradient(to bottom,transparent 0%,var(--red) 35%,var(--red) 65%,transparent 100%);
+  opacity:.7;
+}
+.hero-inner{
+  position:relative;z-index:1;
+  display:grid;grid-template-columns:1fr 480px;gap:60px;align-items:center;
+}
+/* Eyebrow */
+.eyebrow{
+  display:inline-flex;align-items:center;gap:10px;
+  font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;
+  color:var(--teal);margin-bottom:22px;
+}
+.eyebrow::before{content:'';width:28px;height:1px;background:var(--teal)}
+/* Título */
+.hero-title{
+  font-family:var(--disp);font-size:clamp(58px,7.5vw,100px);
+  line-height:.92;letter-spacing:.5px;color:var(--t-hi);margin-bottom:10px;
+}
+.hero-title em{font-style:normal;color:var(--red);display:block}
+.hero-title small{
+  font-family:var(--cond);font-size:clamp(14px,2vw,22px);font-weight:300;
+  letter-spacing:4px;color:var(--t-lo);display:block;margin-top:6px;text-transform:uppercase;
+}
+.hero-desc{
+  font-size:15px;font-weight:300;color:var(--t-md);line-height:1.8;
+  max-width:480px;margin-bottom:36px;
+}
+.hero-desc strong{color:var(--t-hi);font-weight:500}
+/* Botões */
+.btns{display:flex;gap:12px;flex-wrap:wrap}
+.btn-p{
+  background:var(--red);color:#fff;border:none;cursor:pointer;text-decoration:none;
+  font-family:var(--cond);font-size:12px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;
+  padding:13px 32px;border-radius:var(--r);
+  box-shadow:0 6px 22px var(--red-glow);transition:all .22s;
+  display:inline-flex;align-items:center;gap:8px;
+}
+.btn-p:hover{background:var(--red-lt);transform:translateY(-2px);box-shadow:0 8px 30px var(--red-glow)}
+.btn-s{
+  background:transparent;color:var(--t-md);
+  border:1px solid var(--bd2);cursor:pointer;text-decoration:none;
+  font-family:var(--cond);font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  padding:13px 28px;border-radius:var(--r);transition:all .22s;
+  display:inline-flex;align-items:center;gap:8px;
+}
+.btn-s:hover{border-color:var(--t-hi);color:var(--t-hi);background:rgba(255,255,255,.03)}
+/* Stats */
+.hero-stats{
+  display:flex;gap:36px;margin-top:44px;padding-top:36px;
+  border-top:1px solid var(--bd);flex-wrap:wrap;
+}
+.stat-val{font-family:var(--disp);font-size:38px;line-height:1;color:var(--t-hi);margin-bottom:3px}
+.stat-val span{color:var(--red);font-size:75%}
+.stat-lbl{font-family:var(--cond);font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--t-lo)}
+
+/* ── PAINEL FOTEK MOCK ── */
+.fotek-panel{
+  background:var(--bg1);border:1px solid var(--bd2);border-radius:var(--r2);
+  box-shadow:0 40px 90px rgba(0,0,0,.75),inset 0 1px 0 rgba(255,255,255,.04);
+  overflow:hidden;position:relative;
+}
+.fotek-panel::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(232,25,44,.04) 0%,transparent 55%);pointer-events:none;
+}
+.fp-topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 16px;background:var(--bg2);border-bottom:1px solid var(--bd);
+}
+.fp-title{font-family:var(--cond);font-size:9px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--t-lo)}
+.fp-online{display:flex;align-items:center;gap:5px;font-family:var(--cond);font-size:9px;font-weight:700;letter-spacing:1px;color:var(--teal)}
+.fp-online::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--teal);box-shadow:0 0 7px var(--teal);animation:blink 2.4s infinite}
+.fp-body{padding:18px 16px}
+/* KPIs */
+.fp-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.fp-kpi{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:9px 7px;text-align:center}
+.fp-kpi-v{font-family:var(--disp);font-size:26px;color:var(--teal);line-height:1;margin-bottom:2px}
+.fp-kpi-l{font-family:var(--cond);font-size:8px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--t-lo)}
+/* Displays */
+.fp-disps{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.fp-disp{
+  background:#010204;border:1px solid #181C22;border-radius:var(--r);
+  padding:12px 10px 8px;position:relative;
+  box-shadow:inset 0 0 28px rgba(0,0,0,.95);
+}
+.fp-disp-lbl{
+  position:absolute;top:4px;left:0;right:0;text-align:center;
+  font-family:var(--cond);font-size:6.5px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#22262C;
+}
+.fp-num{
+  font-family:var(--mono);font-size:36px;text-align:center;letter-spacing:5px;
+  padding-top:10px;line-height:1;color:var(--red-lt);
+  text-shadow:0 0 18px rgba(232,25,44,.65),0 0 55px rgba(232,25,44,.18);
+  animation:ledpulse 3.2s ease-in-out infinite;
+}
+.fp-unit{font-family:var(--cond);font-size:7.5px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#22262C;text-align:center;margin-top:3px}
+/* Alert */
+.fp-alert{
+  background:rgba(232,25,44,.05);border:1px solid rgba(232,25,44,.18);
+  border-radius:var(--r);padding:10px 12px;
+  font-family:var(--cond);font-size:10.5px;font-weight:600;letter-spacing:.3px;
+  color:var(--t-md);line-height:1.7;
+}
+.fp-alert strong{color:var(--t-hi)}
+/* Math preview */
+.fp-math{
+  margin-top:10px;padding:10px 12px;
+  background:rgba(0,212,170,.04);border:1px solid rgba(0,212,170,.12);
+  border-radius:var(--r);
+  font-family:var(--mono);font-size:10px;color:var(--t-lo);line-height:1.8;
+}
+.fp-math .hi{color:var(--teal)}
+
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes ledpulse{
+  0%,100%{text-shadow:0 0 18px rgba(232,25,44,.65),0 0 55px rgba(232,25,44,.18)}
+  50%{text-shadow:0 0 28px rgba(232,25,44,.9),0 0 80px rgba(232,25,44,.35)}
+}
+
+/* ───────────────────────────────────────
+   TICKER
+─────────────────────────────────────── */
+.ticker{
+  border-top:1px solid var(--bd);border-bottom:1px solid var(--bd);
+  overflow:hidden;padding:12px 0;background:var(--bg1);
+}
+.ticker-track{
+  display:flex;gap:56px;width:max-content;
+  animation:scroll 24s linear infinite;
+}
+.tick{
+  font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:2.5px;
+  text-transform:uppercase;color:var(--t-lo);white-space:nowrap;
+  display:flex;align-items:center;gap:18px;
+}
+.tick::before{content:'◆';color:var(--red);font-size:7px}
+@keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ───────────────────────────────────────
+   SECTION GENÉRICO
+─────────────────────────────────────── */
+.sec{padding:96px 0}
+.sec-alt{background:var(--bg1);border-top:1px solid var(--bd);border-bottom:1px solid var(--bd)}
+.sec-lbl{
+  font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;
+  color:var(--red);margin-bottom:14px;display:flex;align-items:center;gap:10px;
+}
+.sec-lbl::after{content:'';flex:1;max-width:36px;height:1px;background:var(--red);opacity:.5}
+.sec-h{font-family:var(--disp);font-size:clamp(38px,5vw,64px);line-height:.97;color:var(--t-hi);margin-bottom:18px}
+.sec-h em{font-style:normal;color:var(--red)}
+.sec-p{font-size:15px;font-weight:300;color:var(--t-md);line-height:1.8;max-width:540px}
+.sec-p strong{color:var(--t-hi);font-weight:500}
+
+/* ───────────────────────────────────────
+   PROBLEMA — 3 cards
+─────────────────────────────────────── */
+.prob-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:56px}
+.prob-card{
+  background:var(--bg1);border:1px solid var(--bd);border-radius:var(--r2);
+  padding:26px 22px;position:relative;overflow:hidden;transition:border-color .3s;
+}
+.prob-card:hover{border-color:rgba(232,25,44,.28)}
+.prob-card::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:var(--red);transform:scaleX(0);transform-origin:left;transition:transform .3s;
+}
+.prob-card:hover::after{transform:scaleX(1)}
+.prob-icon{font-size:26px;margin-bottom:12px;display:block}
+.prob-title{font-family:var(--cond);font-size:14px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t-hi);margin-bottom:8px}
+.prob-txt{font-size:12.5px;color:var(--t-md);line-height:1.7}
+.prob-badge{
+  display:flex;align-items:center;gap:7px;margin-top:14px;padding:7px 11px;
+  background:rgba(232,25,44,.06);border:1px solid rgba(232,25,44,.14);border-radius:4px;
+  font-family:var(--mono);font-size:10px;color:rgba(232,25,44,.65);
+}
+.prob-badge::before{content:'✕';font-size:9px}
+@media(max-width:840px){.prob-grid{grid-template-columns:1fr}}
+
+/* ───────────────────────────────────────
+   SOLUÇÃO — split
+─────────────────────────────────────── */
+.sol-split{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:start;margin-top:56px}
+/* Lista de features */
+.feat-list{display:flex;flex-direction:column}
+.feat-item{
+  display:flex;gap:18px;padding:22px 0;
+  border-bottom:1px solid var(--bd);cursor:default;
+  transition:padding-left .2s;
+}
+.feat-item:first-child{border-top:1px solid var(--bd)}
+.feat-item:hover{padding-left:10px}
+.feat-n{font-family:var(--disp);font-size:34px;color:rgba(232,25,44,.13);line-height:1;flex-shrink:0;width:34px;transition:color .2s}
+.feat-item:hover .feat-n{color:rgba(232,25,44,.38)}
+.feat-title{font-family:var(--cond);font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t-hi);margin-bottom:5px}
+.feat-desc{font-size:12.5px;color:var(--t-md);line-height:1.65}
+.feat-chip{
+  display:inline-block;margin-top:7px;
+  font-family:var(--cond);font-size:8.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  padding:2px 9px;border-radius:3px;background:var(--teal-dim);border:1px solid var(--teal-bd);color:var(--teal);
+}
+/* Painel matemático */
+.math-box{background:var(--bg1);border:1px solid var(--bd2);border-radius:var(--r2);overflow:hidden;position:sticky;top:80px}
+.math-head{
+  background:var(--bg2);border-bottom:1px solid var(--bd);padding:12px 18px;
+  font-family:var(--cond);font-size:9px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;
+  color:var(--teal);display:flex;align-items:center;gap:8px;
+}
+.math-head::before{content:'∫';font-family:Georgia,serif;font-size:15px}
+.math-code{padding:22px 18px;font-family:var(--mono);font-size:11.5px;line-height:2;color:var(--t-md)}
+.mc{color:var(--t-lo)}
+.mv{color:var(--teal)}
+.mh{background:rgba(232,25,44,.07);border-left:2px solid var(--red);padding:7px 11px;margin:6px 0;border-radius:0 4px 4px 0;display:block}
+.mr{
+  margin:14px 0 0;padding:13px 15px;
+  background:var(--teal-dim);border:1px solid var(--teal-bd);border-radius:var(--r);
+  font-size:10.5px;color:var(--teal);line-height:1.7;
+}
+.mr strong{font-size:13px;display:block;margin-bottom:3px}
+@media(max-width:900px){.sol-split{grid-template-columns:1fr}.math-box{position:static}}
+
+/* ───────────────────────────────────────
+   COMO FUNCIONA — steps
+─────────────────────────────────────── */
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:56px;position:relative}
+.steps::before{
+  content:'';position:absolute;
+  top:31px;left:calc(12.5% + 18px);right:calc(12.5% + 18px);height:1px;
+  background:repeating-linear-gradient(90deg,rgba(232,25,44,.25) 0,rgba(232,25,44,.25) 5px,transparent 5px,transparent 13px);
+}
+.step{padding:0 18px;text-align:center}
+.step-n{
+  width:62px;height:62px;border-radius:50%;
+  background:var(--bg2);border:1px solid var(--bd2);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 18px;font-family:var(--disp);font-size:26px;color:var(--red);
+  position:relative;z-index:1;transition:all .3s;
+}
+.step:hover .step-n{background:rgba(232,25,44,.1);border-color:var(--red);box-shadow:0 0 22px rgba(232,25,44,.18)}
+.step-title{font-family:var(--cond);font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--t-hi);margin-bottom:8px}
+.step-desc{font-size:12px;color:var(--t-md);line-height:1.7}
+@media(max-width:700px){.steps{grid-template-columns:1fr 1fr}.steps::before{display:none}.step{border:none;padding:14px 0}}
+
+/* ───────────────────────────────────────
+   MÓDULOS — 6 cards
+─────────────────────────────────────── */
+.mod-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:56px}
+.mod-card{
+  background:var(--bg1);border:1px solid var(--bd);border-radius:var(--r2);
+  padding:26px 22px;transition:all .3s;
+}
+.mod-card:hover{border-color:var(--bd2);transform:translateY(-4px);box-shadow:0 14px 44px rgba(0,0,0,.45)}
+.mod-ico{width:42px;height:42px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:19px;margin-bottom:14px}
+.ic-red  {background:rgba(232,25,44,.1);border:1px solid rgba(232,25,44,.2)}
+.ic-teal {background:var(--teal-dim);border:1px solid var(--teal-bd)}
+.ic-blu  {background:var(--blu-dim);border:1px solid var(--blu-bd)}
+.ic-amb  {background:var(--amb-dim);border:1px solid var(--amb-bd)}
+.ic-grn  {background:var(--grn-dim);border:1px solid var(--grn-bd)}
+.ic-gray {background:rgba(255,255,255,.04);border:1px solid var(--bd2)}
+.mod-title{font-family:var(--cond);font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t-hi);margin-bottom:7px}
+.mod-desc{font-size:12px;color:var(--t-md);line-height:1.7}
+.mod-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:12px}
+.mod-tag{
+  font-family:var(--cond);font-size:8.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+  padding:2px 7px;border-radius:3px;background:var(--bg2);border:1px solid var(--bd);color:var(--t-lo);
+}
+@media(max-width:840px){.mod-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.mod-grid{grid-template-columns:1fr}}
+
+/* ───────────────────────────────────────
+   COMPARATIVO
+─────────────────────────────────────── */
+.cmp{margin-top:56px;border:1px solid var(--bd);border-radius:var(--r2);overflow:hidden}
+.cmp-head{display:grid;grid-template-columns:1fr 1fr 1fr;background:var(--bg2);border-bottom:2px solid var(--bd2)}
+.ch{padding:14px 22px;font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--t-lo);border-right:1px solid var(--bd)}
+.ch:last-child{border-right:none}
+.ch.hi{color:var(--t-hi);background:rgba(232,25,44,.04);border-bottom:2px solid var(--red);position:relative;top:2px}
+.cmp-row{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--bd)}
+.cmp-row:last-child{border-bottom:none}
+.cmp-row:hover{background:rgba(255,255,255,.013)}
+.cc{padding:13px 22px;font-size:12.5px;color:var(--t-md);border-right:1px solid var(--bd);display:flex;align-items:center;gap:7px}
+.cc:last-child{border-right:none}
+.cc.hi{background:rgba(232,25,44,.03)}
+.cc.feat{font-family:var(--cond);font-weight:700;font-size:11.5px;letter-spacing:.3px;color:var(--t-hi)}
+.ok{color:var(--teal);font-size:13px;flex-shrink:0}
+.no{color:var(--t-lo);font-size:13px;flex-shrink:0}
+.par{color:var(--amb);font-size:13px;flex-shrink:0}
+
+/* ───────────────────────────────────────
+   PERFIS
+─────────────────────────────────────── */
+.prof-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:56px}
+.prof-card{border-radius:var(--r2);overflow:hidden;border:1px solid var(--bd)}
+.prof-head{padding:18px 22px;display:flex;align-items:center;gap:11px}
+.ph-a{background:rgba(232,25,44,.1);border-bottom:2px solid var(--red)}
+.ph-p{background:var(--teal-dim);border-bottom:2px solid var(--teal)}
+.ph-o{background:var(--blu-dim);border-bottom:2px solid var(--blu)}
+.prof-ico{font-size:18px}
+.prof-name{font-family:var(--disp);font-size:22px;letter-spacing:1px;color:var(--t-hi);line-height:1}
+.prof-sub{font-family:var(--cond);font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--t-lo)}
+.prof-body{background:var(--bg1);padding:18px 22px}
+.perm{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--bd);font-size:11.5px;color:var(--t-md);font-family:var(--cond);font-weight:600;letter-spacing:.3px}
+.perm:last-child{border-bottom:none}
+.pok{color:var(--teal);font-size:13px;flex-shrink:0}
+.pno{color:var(--t-lo);font-size:13px;flex-shrink:0}
+@media(max-width:700px){.prof-grid{grid-template-columns:1fr}}
+
+/* ───────────────────────────────────────
+   TECH
+─────────────────────────────────────── */
+.tech-split{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:start}
+.tech-pills{display:flex;flex-wrap:wrap;gap:10px;margin-top:32px}
+.tech-pill{
+  display:flex;align-items:center;gap:9px;
+  background:var(--bg1);border:1px solid var(--bd);border-radius:var(--r);
+  padding:9px 15px;font-family:var(--cond);font-size:11px;font-weight:700;
+  letter-spacing:1px;text-transform:uppercase;color:var(--t-md);transition:all .2s;
+}
+.tech-pill:hover{border-color:var(--bd2);color:var(--t-hi);background:var(--bg2)}
+.tdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.stat-cards{display:flex;flex-direction:column;gap:12px}
+.stat-card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);padding:18px 22px}
+.sc-lbl{font-family:var(--cond);font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px}
+.sc-val{font-family:var(--disp);font-size:42px;color:var(--t-hi);line-height:1}
+.sc-sub{font-size:11px;color:var(--t-lo);margin-top:3px}
+@media(max-width:800px){.tech-split{grid-template-columns:1fr}}
+
+/* ───────────────────────────────────────
+   CTA
+─────────────────────────────────────── */
+.cta-sec{
+  padding:120px 0;text-align:center;position:relative;overflow:hidden;
+}
+.cta-glow{
+  position:absolute;width:700px;height:500px;
+  background:radial-gradient(ellipse,rgba(232,25,44,.1) 0%,transparent 65%);
+  left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;
+}
+.cta-sec .sec-h{font-size:clamp(50px,6.5vw,84px);margin:0 auto 18px}
+.cta-sec .sec-p{margin:0 auto 36px}
+.cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.cta-note{
+  margin-top:22px;font-family:var(--cond);font-size:9.5px;font-weight:700;
+  letter-spacing:1.5px;text-transform:uppercase;color:var(--t-lo);
+  display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap;
+}
+.cn-item{padding:0 14px}
+.cn-item+.cn-item{border-left:1px solid var(--t-lo)}
+
+/* ───────────────────────────────────────
+   FOOTER
+─────────────────────────────────────── */
+footer{border-top:1px solid var(--bd);padding:36px 0;background:var(--bg1)}
+.foot-i{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.foot-brand{font-family:var(--cond);font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--t-lo)}
+.foot-brand b{color:var(--red)}
+.foot-ver{font-family:var(--mono);font-size:10px;color:var(--t-lo);margin-top:4px}
+.foot-links{display:flex;gap:22px;list-style:none}
+.foot-links a{font-family:var(--cond);font-size:9.5px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--t-lo);text-decoration:none;transition:color .2s}
+.foot-links a:hover{color:var(--t-md)}
+
+/* ───────────────────────────────────────
+   REVEAL
+─────────────────────────────────────── */
+.rv{opacity:0;transform:translateY(26px);transition:opacity .58s ease,transform .58s ease}
+.rv.on{opacity:1;transform:translateY(0)}
+.rv1{transition-delay:.1s}.rv2{transition-delay:.2s}.rv3{transition-delay:.3s}
+
+/* ───────────────────────────────────────
+   RESPONSIVE MISC
+─────────────────────────────────────── */
+.hero-inner{@media(max-width:920px){grid-template-columns:1fr}}
+@media(max-width:920px){
+  .hero-inner{grid-template-columns:1fr}
+  .fotek-panel{display:none}
+  .hero-stats{gap:22px}
+}
+@media(max-width:600px){
+  .btns,.cta-btns{flex-direction:column;align-items:stretch}
+  .btns a,.cta-btns a{text-align:center;justify-content:center}
+  .foot-i{flex-direction:column;text-align:center}
+  .foot-links{justify-content:center}
+  .cmp{overflow-x:auto}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="nav">
+  <div class="wrap nav-i">
+    <div class="nav-brand">
+      <img class="nav-logo" src="data:image/png;base64,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" alt="Stickfran">
+      <span class="nav-name"><b>STICK</b>FRAN · Gerenciador de Pulso</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="#problema">Problema</a></li>
+      <li><a href="#solucao">Solução</a></li>
+      <li><a href="#modulos">Módulos</a></li>
+      <li><a href="#acesso">Acesso</a></li>
+    </ul>
+    <a href="#cta" class="nav-btn">⚡ Abrir Sistema</a>
+  </div>
+</nav>
+
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-stripe"></div>
+  <div class="wrap">
+    <div class="hero-inner">
+      <div>
+        <div class="eyebrow">Controle de Produção Têxtil</div>
+        <h1 class="hero-title">
+          Gerenciador
+          <em>de Pulso</em>
+          <small>Espuladeira Industrial</small>
+        </h1>
+        <p class="hero-desc">
+          Calcule com <strong>precisão matemática</strong> os pulsos exatos para programar
+          espuladeiras. Elimine o desperdício de fio, erros de corte
+          e retrabalho causados pela regra de três.
+        </p>
+        <div class="btns">
+          <a href="#cta" class="btn-p">⚡ Acessar o Sistema</a>
+          <a href="#solucao" class="btn-s">Como funciona →</a>
+        </div>
+        <div class="hero-stats">
+          <div><div class="stat-val" id="s1">60<span>p</span></div><div class="stat-lbl">Pulsos Máx.</div></div>
+          <div><div class="stat-val" id="s2">720<span>m</span></div><div class="stat-lbl">Metros/Espula</div></div>
+          <div><div class="stat-val" id="s3">12<span>,00</span></div><div class="stat-lbl">Metros/Pulso</div></div>
+          <div><div class="stat-val" id="s4">0<span>%</span></div><div class="stat-lbl">Erro no Modelo</div></div>
+        </div>
+      </div>
+
+      <!-- FOTEK MOCK -->
+      <div class="fotek-panel">
+        <div class="fp-topbar">
+          <div class="fp-title">Setup de Produção</div>
+          <div class="fp-online">BD Online</div>
+        </div>
+        <div class="fp-body">
+          <div class="fp-kpis">
+            <div class="fp-kpi"><div class="fp-kpi-v">192</div><div class="fp-kpi-l">Espulas</div></div>
+            <div class="fp-kpi"><div class="fp-kpi-v">24</div><div class="fp-kpi-l">Fusos</div></div>
+            <div class="fp-kpi"><div class="fp-kpi-v">9.720</div><div class="fp-kpi-l">Metros</div></div>
+          </div>
+          <div class="fp-disps">
+            <div class="fp-disp">
+              <div class="fp-disp-lbl">Contador de Camada</div>
+              <div class="fp-num">0060</div>
+              <div class="fp-unit">Pulsos</div>
+            </div>
+            <div class="fp-disp">
+              <div class="fp-disp-lbl">Contador de Bobinas</div>
+              <div class="fp-num">0168</div>
+              <div class="fp-unit">Espulas</div>
+            </div>
+          </div>
+          <div class="fp-alert">
+            <strong>Lote 1:</strong> 60 pulsos → 168 espulas cheias<br>
+            <strong>Lote 2:</strong> 47 pulsos → 24 espulas (563 m)
+          </div>
+          <div class="fp-math">
+            <span class="mv">m(x)</span> = C₀·K·x + (ΔC·K/2P)·x²<br>
+            <span class="mv">P</span> = ⌈Bhaskara(<span class="hi">563m</span>, ficha)⌉ = <span class="hi">47 pulsos</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- TICKER -->
+<div class="ticker">
+  <div class="ticker-track">
+    <span class="tick">Espiral de Arquimedes</span>
+    <span class="tick">Fórmula de Bhaskara</span>
+    <span class="tick">Cálculo de Pulsos</span>
+    <span class="tick">PWA Offline-First</span>
+    <span class="tick">Supabase PostgreSQL</span>
+    <span class="tick">Multi-usuário</span>
+    <span class="tick">Backup JSON + CSV</span>
+    <span class="tick">GitHub Pages</span>
+    <span class="tick">Espiral de Arquimedes</span>
+    <span class="tick">Fórmula de Bhaskara</span>
+    <span class="tick">Cálculo de Pulsos</span>
+    <span class="tick">PWA Offline-First</span>
+    <span class="tick">Supabase PostgreSQL</span>
+    <span class="tick">Multi-usuário</span>
+    <span class="tick">Backup JSON + CSV</span>
+    <span class="tick">GitHub Pages</span>
+  </div>
+</div>
+
+
+<!-- PROBLEMA -->
+<section class="sec" id="problema">
+  <div class="wrap">
+    <div class="sec-lbl">O Problema</div>
+    <h2 class="sec-h">A regra de três <em>falha</em><br>sistematicamente</h2>
+    <p class="sec-p">O enrolamento radial é uma função <strong>quadrática</strong>, não linear. Cada volta percorre uma circunferência maior que a anterior — calcular por proporção simples acumula erro em todo pedido.</p>
+    <div class="prob-grid">
+      <div class="prob-card rv">
+        <span class="prob-icon">📉</span>
+        <div class="prob-title">Erro Sistemático</div>
+        <div class="prob-txt">Proporção simples ignora o crescimento radial. O erro aumenta conforme a diferença entre diâmetro vazio e cheio da espula.</div>
+        <div class="prob-badge">Regra de três = resultado errado sempre</div>
+      </div>
+      <div class="prob-card rv rv1">
+        <span class="prob-icon">🧵</span>
+        <div class="prob-title">Desperdício de Fio</div>
+        <div class="prob-txt">Pulsos a mais desperdiçam fio caro. Pulsos a menos exigem paradas, inspeções e retrabalho em toda a linha de produção.</div>
+        <div class="prob-badge">Cada parada = atraso + custo extra</div>
+      </div>
+      <div class="prob-card rv rv2">
+        <span class="prob-icon">🗒️</span>
+        <div class="prob-title">Processo Manual</div>
+        <div class="prob-txt">Cálculos em papel ou planilhas desatualizadas geram inconsistências entre turnos, operadores e máquinas. Sem rastreabilidade.</div>
+        <div class="prob-badge">Sem histórico, sem controle</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- SOLUÇÃO -->
+<section class="sec sec-alt" id="solucao">
+  <div class="wrap">
+    <div class="sec-lbl">A Solução</div>
+    <h2 class="sec-h">Matemática <em>exata,</em><br>resultado certo</h2>
+    <div class="sol-split">
+      <div class="feat-list">
+        <div class="feat-item rv">
+          <div class="feat-n">01</div>
+          <div>
+            <div class="feat-title">Modelo Quadrático Correto</div>
+            <div class="feat-desc">Usa o modelo de crescimento radial linear (Espiral de Arquimedes) que representa com exatidão como o fio se acumula na espula.</div>
+            <span class="feat-chip">sem erro no modelo</span>
+          </div>
+        </div>
+        <div class="feat-item rv rv1">
+          <div class="feat-n">02</div>
+          <div>
+            <div class="feat-title">Inversão via Bhaskara</div>
+            <div class="feat-desc">Para calcular pulsos a partir de metros, resolve a equação quadrática inversa com precisão de 6 casas decimais. Arredonda sempre para cima — nunca falta fio.</div>
+            <span class="feat-chip">⌈x⌉ — arredondamento exato</span>
+          </div>
+        </div>
+        <div class="feat-item rv rv2">
+          <div class="feat-n">03</div>
+          <div>
+            <div class="feat-title">Divisão em Lotes Automática</div>
+            <div class="feat-desc">Calcula Lote 1 (espulas cheias) e Lote 2 (parciais) com os pulsos exatos para cada programação, para qualquer número de fusos.</div>
+            <span class="feat-chip">qualquer configuração de fusos</span>
+          </div>
+        </div>
+        <div class="feat-item rv rv3">
+          <div class="feat-n">04</div>
+          <div>
+            <div class="feat-title">Fichas Técnicas por Espula</div>
+            <div class="feat-desc">Cada modelo tem sua ficha com parâmetros calibrados. Cadastrada uma vez, o operador só informa a metragem e os fusos.</div>
+            <span class="feat-chip">reutilizável em todos os pedidos</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="math-box rv">
+        <div class="math-head">Modelo Matemático — Espiral de Arquimedes</div>
+        <div class="math-code">
+<span class="mc">// Grandezas base</span><br>
+<span class="mv">C₀</span>    = π × D₀ / 100<br>
+<span class="mv">C_max</span> = π × D_max / 100<br>
+<span class="mv">K</span>     = (M_max / C_med) / P_max<br>
+<br>
+<span class="mc">// Metragem após x pulsos</span><br>
+<span class="mh"><span class="mv">m(x)</span> = C₀·K·x + (ΔC·K / 2·P)·x²</span>
+<br>
+<span class="mc">// Inverter: metros → pulsos</span><br>
+<span class="mv">a</span> = (ΔC × K) / (2 × P_max)<br>
+<span class="mv">b</span> = C₀ × K<br>
+<span class="mv">c</span> = −m_desejada<br>
+<span class="mh"><span class="mv">x</span> = (−b + √(b²−4ac)) / (2a)<br><span class="mv">P</span> = ⌈x⌉  <span class="mc">// sempre para cima</span></span>
+<div class="mr"><strong>✅ Validado: m(60) = 720,000 m</strong>Erro do modelo = 0 m — margem de arredondamento exibida no relatório.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- COMO FUNCIONA -->
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-lbl">Fluxo de Uso</div>
+    <h2 class="sec-h">4 passos até o <em>setup</em></h2>
+    <div class="steps">
+      <div class="step rv">
+        <div class="step-n">1</div>
+        <div class="step-title">Selecionar Ficha</div>
+        <div class="step-desc">Escolha o modelo de espula com seus parâmetros físicos já calibrados no sistema.</div>
+      </div>
+      <div class="step rv rv1">
+        <div class="step-n">2</div>
+        <div class="step-title">Informar Pedido</div>
+        <div class="step-desc">Digite a metragem total do pedido e o número de fusos da trançadeira.</div>
+      </div>
+      <div class="step rv rv2">
+        <div class="step-n">3</div>
+        <div class="step-title">Calcular Setup</div>
+        <div class="step-desc">O sistema calcula os pulsos exatos para Lote 1 (cheias) e Lote 2 (parciais) instantaneamente.</div>
+      </div>
+      <div class="step rv rv3">
+        <div class="step-n">4</div>
+        <div class="step-title">Programar Máquina</div>
+        <div class="step-desc">O operador programa os contadores Fotek com os valores exibidos no relatório.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- MÓDULOS -->
+<section class="sec sec-alt" id="modulos">
+  <div class="wrap">
+    <div class="sec-lbl">Funcionalidades</div>
+    <h2 class="sec-h">Tudo que a produção <em>precisa</em></h2>
+    <p class="sec-p">Seis módulos integrados, acessíveis de acordo com o perfil do usuário. Do operador ao gestor.</p>
+    <div class="mod-grid">
+      <div class="mod-card rv">
+        <div class="mod-ico ic-teal">⚙️</div>
+        <div class="mod-title">Consulta & Setup</div>
+        <div class="mod-desc">Cálculo em tempo real com relatório de Lote 1 e Lote 2. Display Fotek visual com valores prontos para programar.</div>
+        <div class="mod-tags"><span class="mod-tag">Todos os perfis</span><span class="mod-tag">Tempo real</span></div>
+      </div>
+      <div class="mod-card rv rv1">
+        <div class="mod-ico ic-blu">📋</div>
+        <div class="mod-title">Fichas Técnicas</div>
+        <div class="mod-desc">CRUD de receitas de produção. Cadastre qualquer espula com parâmetros físicos. Preview matemático ao preencher.</div>
+        <div class="mod-tags"><span class="mod-tag">Admin + PCP</span><span class="mod-tag">Sync cloud</span></div>
+      </div>
+      <div class="mod-card rv rv2">
+        <div class="mod-ico ic-red">👥</div>
+        <div class="mod-title">Gerenciar Usuários</div>
+        <div class="mod-desc">Cadastre, edite, suspenda ou exclua usuários. Três perfis de acesso sincronizados entre dispositivos.</div>
+        <div class="mod-tags"><span class="mod-tag">Somente Admin</span><span class="mod-tag">Multi-device</span></div>
+      </div>
+      <div class="mod-card rv">
+        <div class="mod-ico ic-amb">💾</div>
+        <div class="mod-title">Backup & Exportação</div>
+        <div class="mod-desc">Exporte todas as fichas em JSON ou CSV com um clique. Inclui fichas ativas e excluídas com metadados.</div>
+        <div class="mod-tags"><span class="mod-tag">Somente Admin</span><span class="mod-tag">JSON + CSV</span></div>
+      </div>
+      <div class="mod-card rv rv1">
+        <div class="mod-ico ic-grn">🔬</div>
+        <div class="mod-title">Análise Técnica</div>
+        <div class="mod-desc">Documentação do modelo matemático, dados físicos das espulas e comparativo técnico. Validação com rastreabilidade.</div>
+        <div class="mod-tags"><span class="mod-tag">Todos os perfis</span><span class="mod-tag">Referência</span></div>
+      </div>
+      <div class="mod-card rv rv2">
+        <div class="mod-ico ic-gray">📱</div>
+        <div class="mod-title">PWA — App Instalável</div>
+        <div class="mod-desc">Instala no celular ou desktop como app nativo. Funciona offline e sincroniza automaticamente ao reconectar.</div>
+        <div class="mod-tags"><span class="mod-tag">Android + iOS</span><span class="mod-tag">Offline-first</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- COMPARATIVO -->
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-lbl">Comparativo</div>
+    <h2 class="sec-h">Por que não <em>planilha?</em></h2>
+    <div class="cmp rv">
+      <div class="cmp-head">
+        <div class="ch">Recurso</div>
+        <div class="ch">Planilha / Manual</div>
+        <div class="ch hi">⚡ Gerenciador de Pulso</div>
+      </div>
+      <div class="cmp-row"><div class="cc feat">Modelo matemático correto</div><div class="cc"><span class="no">✕</span> Regra de três (errado)</div><div class="cc hi"><span class="ok">✓</span> Bhaskara — exato</div></div>
+      <div class="cmp-row"><div class="cc feat">Divisão automática em lotes</div><div class="cc"><span class="no">✕</span> Manual, propenso a erro</div><div class="cc hi"><span class="ok">✓</span> Automático, instantâneo</div></div>
+      <div class="cmp-row"><div class="cc feat">Funciona no celular</div><div class="cc"><span class="par">~</span> Com limitações</div><div class="cc hi"><span class="ok">✓</span> PWA — app nativo</div></div>
+      <div class="cmp-row"><div class="cc feat">Múltiplos usuários e perfis</div><div class="cc"><span class="no">✕</span> Não suportado</div><div class="cc hi"><span class="ok">✓</span> Admin / PCP / Operador</div></div>
+      <div class="cmp-row"><div class="cc feat">Sincronização entre dispositivos</div><div class="cc"><span class="no">✕</span> Arquivo local</div><div class="cc hi"><span class="ok">✓</span> Supabase em tempo real</div></div>
+      <div class="cmp-row"><div class="cc feat">Funciona sem internet</div><div class="cc"><span class="par">~</span> Só local</div><div class="cc hi"><span class="ok">✓</span> Offline + sync automático</div></div>
+      <div class="cmp-row"><div class="cc feat">Histórico de setups</div><div class="cc"><span class="no">✕</span> Sem rastreabilidade</div><div class="cc hi"><span class="ok">✓</span> Log por operador</div></div>
+      <div class="cmp-row"><div class="cc feat">Backup estruturado</div><div class="cc"><span class="par">~</span> Cópia manual</div><div class="cc hi"><span class="ok">✓</span> JSON + CSV com 1 clique</div></div>
+    </div>
+  </div>
+</section>
+
+
+<!-- PERFIS -->
+<section class="sec sec-alt" id="acesso">
+  <div class="wrap">
+    <div class="sec-lbl">Controle de Acesso</div>
+    <h2 class="sec-h">Cada usuário vê<br>o que <em>precisa</em></h2>
+    <p class="sec-p">Três níveis garantem que cada colaborador opere apenas as funções relevantes ao seu papel na produção.</p>
+    <div class="prof-grid">
+      <div class="prof-card rv">
+        <div class="prof-head ph-a"><div class="prof-ico">🔴</div><div><div class="prof-name">Admin</div><div class="prof-sub">Acesso completo</div></div></div>
+        <div class="prof-body">
+          <div class="perm"><span class="pok">✓</span>Consulta & Setup</div>
+          <div class="perm"><span class="pok">✓</span>Fichas Técnicas</div>
+          <div class="perm"><span class="pok">✓</span>Backup & Exportação</div>
+          <div class="perm"><span class="pok">✓</span>Gerenciar Usuários</div>
+          <div class="perm"><span class="pok">✓</span>Análise Técnica</div>
+        </div>
+      </div>
+      <div class="prof-card rv rv1">
+        <div class="prof-head ph-p"><div class="prof-ico">🟢</div><div><div class="prof-name">PCP</div><div class="prof-sub">Acesso parcial</div></div></div>
+        <div class="prof-body">
+          <div class="perm"><span class="pok">✓</span>Consulta & Setup</div>
+          <div class="perm"><span class="pok">✓</span>Fichas Técnicas</div>
+          <div class="perm"><span class="pno">✕</span>Backup & Exportação</div>
+          <div class="perm"><span class="pno">✕</span>Gerenciar Usuários</div>
+          <div class="perm"><span class="pok">✓</span>Análise Técnica</div>
+        </div>
+      </div>
+      <div class="prof-card rv rv2">
+        <div class="prof-head ph-o"><div class="prof-ico">🔵</div><div><div class="prof-name">Operador</div><div class="prof-sub">Somente consulta</div></div></div>
+        <div class="prof-body">
+          <div class="perm"><span class="pok">✓</span>Consulta & Setup</div>
+          <div class="perm"><span class="pno">✕</span>Fichas Técnicas</div>
+          <div class="perm"><span class="pno">✕</span>Backup & Exportação</div>
+          <div class="perm"><span class="pno">✕</span>Gerenciar Usuários</div>
+          <div class="perm"><span class="pok">✓</span>Análise Técnica</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- TECH -->
+<section class="sec">
+  <div class="wrap">
+    <div class="tech-split">
+      <div>
+        <div class="sec-lbl">Tecnologia</div>
+        <h2 class="sec-h" style="font-size:clamp(34px,4vw,56px)">Construído para <em>durar</em></h2>
+        <p class="sec-p" style="font-size:14px">Arquitetura leve, robusta e sem custo operacional. Sem frameworks pesados — roda em qualquer servidor estático.</p>
+        <div class="tech-pills">
+          <div class="tech-pill"><div class="tdot" style="background:#f89820"></div>JavaScript Puro</div>
+          <div class="tech-pill"><div class="tdot" style="background:#00d4aa"></div>Supabase PostgreSQL</div>
+          <div class="tech-pill"><div class="tdot" style="background:#e8192c"></div>PWA Service Worker</div>
+          <div class="tech-pill"><div class="tdot" style="background:#eee"></div>GitHub Pages</div>
+          <div class="tech-pill"><div class="tdot" style="background:#4078c8"></div>CSS Variables</div>
+          <div class="tech-pill"><div class="tdot" style="background:#55aa55"></div>REST API</div>
+        </div>
+      </div>
+      <div class="stat-cards">
+        <div class="stat-card rv"><div class="sc-lbl" style="color:var(--teal)">Custo de Operação</div><div class="sc-val">R$ 0</div><div class="sc-sub">Supabase Free + GitHub Pages gratuito</div></div>
+        <div class="stat-card rv rv1"><div class="sc-lbl" style="color:var(--amb)">Deploy em</div><div class="sc-val">15 min</div><div class="sc-sub">SQL + Pages + domínio próprio</div></div>
+        <div class="stat-card rv rv2"><div class="sc-lbl" style="color:var(--red-lt)">Compatível com</div><div class="sc-val" style="font-size:32px">Qualquer Dispositivo</div><div class="sc-sub">Android, iPhone, Desktop, Tablet</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- CTA -->
+<section class="cta-sec" id="cta">
+  <div class="cta-glow"></div>
+  <div class="wrap" style="position:relative;z-index:1">
+    <div class="sec-lbl" style="justify-content:center">Stickfran · v4.0</div>
+    <h2 class="sec-h">Pronto para usar.<br><em>Agora mesmo.</em></h2>
+    <p class="sec-p">Sistema completo, funcional e instalável. Configure em minutos e coloque a produção em ordem.</p>
+    <div class="cta-btns">
+      <a href="https://lpmpcpstk-source.github.io/Gerenciador-de-Pulsos-para-Espuladeira-STK/" class="btn-p" style="font-size:13px;padding:15px 40px">⚡ Abrir o Sistema</a>
+      <a href="docs/GUIA_DEPLOY.md" class="btn-s" style="font-size:13px;padding:15px 32px">📄 Guia de Deploy</a>
+    </div>
+    <div class="cta-note">
+      <span class="cn-item">Gratuito para usar</span>
+      <span class="cn-item">Sem instalação</span>
+      <span class="cn-item">Dados na sua conta</span>
+    </div>
+  </div>
+</section>
+
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap">
+    <div class="foot-i">
+      <div>
+        <div class="foot-brand"><b>STICK</b>FRAN · Gerenciador de Pulso</div>
+        <div class="foot-ver">v4.0 · Indústria Têxtil</div>
+      </div>
+      <ul class="foot-links">
+        <li><a href="#problema">Problema</a></li>
+        <li><a href="#solucao">Solução</a></li>
+        <li><a href="#modulos">Módulos</a></li>
+        <li><a href="#cta">Acessar</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Reveal on scroll
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('on'); obs.unobserve(e.target); }});
+}, { threshold: 0.1 });
+document.querySelectorAll('.rv').forEach(el => obs.observe(el));
+
+// Nav scroll tint
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', () => {
+  nav.classList.toggle('scrolled', window.scrollY > 40);
+}, { passive: true });
+
+// Hero counters animate on view
+const statsObs = new IntersectionObserver(entries => {
+  if(!entries[0].isIntersecting) return;
+  statsObs.disconnect();
+  const animate = (id, end, suffix, isFloat) => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    let v = 0; const dur = 1100;
+    const step = 16; const inc = end / (dur / step);
+    const t = setInterval(() => {
+      v = Math.min(v + inc, end);
+      el.innerHTML = isFloat ? `12<span>,00</span>` : `${Math.round(v).toLocaleString('pt-BR')}<span>${suffix}</span>`;
+      if(v >= end) clearInterval(t);
+    }, step);
+  };
+  setTimeout(() => {
+    animate('s1', 60,  'p',   false);
+    animate('s2', 720, 'm',   false);
+    animate('s3', 12,  ',00', true);
+    animate('s4', 0,   '%',   false);
+  }, 300);
+}, { threshold: 0.5 });
+const hs = document.querySelector('.hero-stats');
+if(hs) statsObs.observe(hs);
+</script>
+</body>
+</html>
